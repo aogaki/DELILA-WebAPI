@@ -3,6 +3,7 @@
 #include <mongocxx/instance.hpp>
 
 #include "./AppComponent.hpp"
+#include "./Parameters.hpp"
 #include "controller/UserController.hpp"
 #include "oatpp-swagger/Controller.hpp"
 #include "oatpp/network/Server.hpp"
@@ -41,6 +42,14 @@ void run(const oatpp::base::CommandLineArguments &args)
  */
 int main(int argc, const char *argv[])
 {
+  std::string parFileName =
+      "/home/aogaki/DAQ/DELILA-WebAPI/delila-parameter.conf";
+
+  if (argc > 1) {
+    parFileName = argv[1];
+  }
+  Parameters::GetInstance(parFileName);
+
   oatpp::base::Environment::init();
 
   run(oatpp::base::CommandLineArguments(argc, argv));

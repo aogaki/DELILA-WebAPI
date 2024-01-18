@@ -12,6 +12,8 @@ add_library(${project_name}-lib
         src/db/Database.hpp
         src/AppComponent.hpp
         src/SwaggerComponent.hpp
+        src/Parameters.hpp
+        src/Parameters.cpp
         src/controller/UserController.hpp
         src/controller/DELILAController.hpp
         src/controller/DELILAController.cpp

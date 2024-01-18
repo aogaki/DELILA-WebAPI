@@ -2,6 +2,7 @@
 #ifndef UserController_hpp
 #define UserController_hpp 1
 
+#include "Parameters.hpp"
 #include "controller/DELILAController.hpp"
 #include "db/Database.hpp"
 #include "dto/DTOs.hpp"
@@ -19,8 +20,9 @@ class UserController : public oatpp::web::server::api::ApiController
  private:
   OATPP_COMPONENT(std::shared_ptr<db::Database>, m_database);
 
-  DELILA::DELILAController delila =
-      DELILA::DELILAController("172.18.4.77", 30000);
+  DELILA::DELILAController delila = DELILA::DELILAController(
+      Parameters::GetInstance()->Get("DELILA-IP"),
+      std::stoi(Parameters::GetInstance()->Get("DELILA-Port")));
 
   std::shared_ptr<ApiController::OutgoingResponse> genResponse(
       std::string status)

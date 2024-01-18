@@ -1,0 +1,12 @@
+[Unit]
+Description="DELILA-WebAPI Daemon"
+After=syslog.target network.target
+
+[Service]
+WorkingDirectory=/home/aogaki/DAQ/DELILA-WebAPI/Daemon
+ExecStart=/home/aogaki/DAQ/DELILA-WebAPI/build/delila-webapi /home/aogaki/DAQ/DELILA-WebAPI/delila-parameter.conf
+Restart=always
+SyslogIdentifier=delila-webapi
+
+[Install]
+WantedBy=multi-user.target

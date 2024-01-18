@@ -5,6 +5,7 @@
 #include <mongocxx/client.hpp>
 #include <mongocxx/uri.hpp>
 
+#include "Parameters.hpp"
 #include "SwaggerComponent.hpp"
 #include "db/Database.hpp"
 #include "oatpp/core/base/CommandLineArguments.hpp"
@@ -81,12 +82,14 @@ class AppComponent
   ([this] {
     oatpp::String connectionString = std::getenv("MONGO_CONN_STR");
     if (!connectionString) {
-      connectionString = m_cmdArgs.getNamedArgumentValue(
-          "--conn-str", "mongodb://delila:eli-np@127.0.0.1/DELILA");
+      connectionString = Parameters::GetInstance()->Get("MongoDB-Address") +
+                         "/" +
+                         Parameters::GetInstance()->Get("MongoDB-Database");
     }
 
     mongocxx::uri uri(*connectionString);
-    return std::make_shared<db::Database>(uri, "DELILA");
+    return std::make_shared<db::Database>(
+        uri, Parameters::GetInstance()->Get("MongoDB-Database"));
   }());
 };
 
