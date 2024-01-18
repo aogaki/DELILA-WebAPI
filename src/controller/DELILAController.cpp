@@ -1,5 +1,7 @@
 #include "controller/DELILAController.hpp"
 
+namespace DELILA
+{
 DELILAController::DELILAController(std::string URI, uint32_t port)
     : fURI(URI), fPort(port)
 {
@@ -64,7 +66,7 @@ std::string DELILAController::AccessDAQ(std::string command)
     return response;
   } else {
     std::cerr << "Failed to open socket" << std::endl;
-    return fFailed;
+    return Failed;
   }
 }
 
@@ -72,7 +74,7 @@ std::string DELILAController::CheckStatus()
 {
   std::string command = "get:Log";
   auto response = AccessDAQ(command);
-  if (response == fFailed) std::cerr << "CheckStatus failed" << std::endl;
+  if (response == Failed) std::cerr << "CheckStatus failed" << std::endl;
 
   return response;
 }
@@ -83,7 +85,7 @@ std::string DELILAController::Configure()
       "put:Params:<?xml version='1.0' encoding='UTF-8' "
       "?><request><params>config.xml</params></request>";
   auto response = AccessDAQ(command);
-  if (response == fFailed) std::cerr << "Configure failed" << std::endl;
+  if (response == Failed) std::cerr << "Configure failed" << std::endl;
 
   return response;
 }
@@ -92,7 +94,7 @@ std::string DELILAController::Unconfigure()
 {
   std::string command = "put:ResetParams";
   auto response = AccessDAQ(command);
-  if (response == fFailed) std::cerr << "Unconfigure failed" << std::endl;
+  if (response == Failed) std::cerr << "Unconfigure failed" << std::endl;
 
   return response;
 }
@@ -105,7 +107,7 @@ std::string DELILAController::Start(int32_t runNo)
   std::string part2 = "</runNo></request>";
   std::string command = part1 + run + part2;
   auto response = AccessDAQ(command);
-  if (response == fFailed) std::cerr << "Start failed" << std::endl;
+  if (response == Failed) std::cerr << "Start failed" << std::endl;
 
   return response;
 }
@@ -114,7 +116,7 @@ std::string DELILAController::Stop()
 {
   std::string command = "put:End";
   auto response = AccessDAQ(command);
-  if (response == fFailed) std::cerr << "Stop failed" << std::endl;
+  if (response == Failed) std::cerr << "Stop failed" << std::endl;
 
   return response;
 }
@@ -125,7 +127,7 @@ std::string DELILAController::ConfigureAndStart(int32_t runNo)
       "put:Params:<?xml version='1.0' encoding='UTF-8' "
       "?><request><params>config.xml</params></request>";
   auto response = AccessDAQ(command);
-  if (response == fFailed) {
+  if (response == Failed) {
     std::cerr << "Configure failed" << std::endl;
     return response;
   } else {
@@ -135,7 +137,7 @@ std::string DELILAController::ConfigureAndStart(int32_t runNo)
     std::string part2 = "</runNo></request>";
     command = part1 + run + part2;
     response = AccessDAQ(command);
-    if (response == fFailed) std::cerr << "Start failed" << std::endl;
+    if (response == Failed) std::cerr << "Start failed" << std::endl;
   }
 
   return response;
@@ -145,14 +147,15 @@ std::string DELILAController::StopAndUnconfigure()
 {
   std::string command = "put:End";
   auto response = AccessDAQ(command);
-  if (response == fFailed) {
+  if (response == Failed) {
     std::cerr << "Stop failed" << std::endl;
     return response;
   } else {
     command = "put:ResetParams";
     response = AccessDAQ(command);
-    if (response == fFailed) std::cerr << "Unconfigure failed" << std::endl;
+    if (response == Failed) std::cerr << "Unconfigure failed" << std::endl;
   }
 
   return response;
+}
 }

@@ -19,7 +19,27 @@ class UserController : public oatpp::web::server::api::ApiController
  private:
   OATPP_COMPONENT(std::shared_ptr<db::Database>, m_database);
 
-  DELILAController delila = DELILAController("172.18.4.77", 30000);
+  DELILA::DELILAController delila =
+      DELILA::DELILAController("172.18.4.77", 30000);
+
+  std::shared_ptr<ApiController::OutgoingResponse> genResponse(
+      std::string status)
+  {
+    std::shared_ptr<ApiController::OutgoingResponse> response;
+    if (status == DELILA::Failed) {
+      response = createResponse(
+          Status::CODE_500,
+          status +
+              ": Socket error between API server and DELILA, maybe DELILA is "
+              "not running or wrong IP address.");
+      response->putHeader(Header::CONTENT_TYPE, "text/plain");
+    } else {
+      response = createResponse(Status::CODE_200, status);
+      response->putHeader(Header::CONTENT_TYPE, "application/xml");
+    }
+
+    return response;
+  }
 
  public:
   UserController(const std::shared_ptr<ObjectMapper> &objectMapper)
@@ -52,14 +72,13 @@ class UserController : public oatpp::web::server::api::ApiController
   }
   ADD_CORS(root)
 
+  // To control the DELILA, we need to send commands to DAQ-Middleware
   ENDPOINT_INFO(getStatus) { info->summary = "Get the status of DELILA"; }
   ADD_CORS(getStatus)
   ENDPOINT("GET", "/DELILA/get-status", getStatus)
   {
     auto status = delila.CheckStatus();
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
-
+    auto response = genResponse(status);
     return response;
   }
 
@@ -68,9 +87,7 @@ class UserController : public oatpp::web::server::api::ApiController
   ENDPOINT("POST", "/DELILA/configure", configure)
   {
     auto status = delila.Configure();
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
-
+    auto response = genResponse(status);
     return response;
   }
 
@@ -79,9 +96,7 @@ class UserController : public oatpp::web::server::api::ApiController
   ENDPOINT("POST", "/DELILA/unconfigure", unconfigure)
   {
     auto status = delila.Unconfigure();
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
-
+    auto response = genResponse(status);
     return response;
   }
 
@@ -95,9 +110,7 @@ class UserController : public oatpp::web::server::api::ApiController
   ENDPOINT("POST", "/DELILA/start/{runNo}", start, PATH(Int32, runNo))
   {
     auto status = delila.Start(runNo);
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
-
+    auto response = genResponse(status);
     return response;
   }
 
@@ -106,9 +119,7 @@ class UserController : public oatpp::web::server::api::ApiController
   ENDPOINT("POST", "/DELILA/stop", stop)
   {
     auto status = delila.Stop();
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
-
+    auto response = genResponse(status);
     return response;
   }
 
@@ -123,9 +134,7 @@ class UserController : public oatpp::web::server::api::ApiController
            PATH(Int32, runNo))
   {
     auto status = delila.ConfigureAndStart(runNo);
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
-
+    auto response = genResponse(status);
     return response;
   }
 
@@ -137,9 +146,7 @@ class UserController : public oatpp::web::server::api::ApiController
   ENDPOINT("POST", "/DELILA/stop-and-unconfigure", stopAndUnconfigure)
   {
     auto status = delila.StopAndUnconfigure();
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
-
+    auto response = genResponse(status);
     return response;
   }
 
@@ -151,9 +158,58 @@ class UserController : public oatpp::web::server::api::ApiController
   ENDPOINT("POST", "/DELILA/dry-run", dryRun)
   {
     auto status = delila.ConfigureAndStart(-1);
-    auto response = createResponse(Status::CODE_200, status);
-    response->putHeader(Header::CONTENT_TYPE, "application/xml");
+    auto response = genResponse(status);
+    return response;
+  }
 
+  ENDPOINT_INFO(createNeweRunRecord)
+  {
+    info->summary =
+        "Post start time with run number.  Creating document in the DB.";
+    info->addConsumes<Object<RunLogDto>>("application/json");
+    info->addResponse<Object<RunLogDto>>(Status::CODE_200, "application/json");
+  }
+  ADD_CORS(createNeweRunRecord)
+  ENDPOINT("POST", "/DELILA-DB/create-new-run-record", createNeweRunRecord,
+           BODY_DTO(Object<RunLogDto>, dto))
+  {
+    auto echo = m_database->CreateNewRunRecord(dto);
+    auto response = createDtoResponse(Status::CODE_200, echo);
+    return response;
+  }
+
+  ENDPOINT_INFO(readRunList)
+  {
+    info->summary = "Read run list from DB.";
+    info->addResponse<List<Object<RunLogDto>>>(Status::CODE_200,
+                                               "application/json");
+    info->pathParams["expName"].description = "Experiment name";
+  }
+  ADD_CORS(readRunList)
+  ENDPOINT("GET", "/DELILA-DB/read-run-list/{expName}", readRunList,
+           PATH(String, expName),
+           QUERY(UInt64, listSize, "listSize", uint64_t(0)))
+  {
+    auto runList = m_database->ReadRunList(expName, listSize);
+    auto response = createDtoResponse(Status::CODE_200, runList);
+    return response;
+  }
+
+  ENDPOINT_INFO(updateRunRecord)
+  {
+    info->summary =
+        "Update run record in DB by POST.  Return the nummber of "
+        "documents updated.";
+    // info->addConsumes<Object<RunLogDto>>("application/json");
+    info->addResponse<Object<RunLogDto>>(Status::CODE_200, "text/plain");
+    // info->addResponse<String>(Status::CODE_404, "text/plain");
+  }
+  ADD_CORS(updateRunRecord)
+  ENDPOINT("POST", "/DELILA-DB/update-run-record", updateRunRecord,
+           BODY_DTO(Object<RunLogDto>, dto))
+  {
+    auto count = m_database->UpdateRunRecord(dto);
+    auto response = createResponse(Status::CODE_200, std::to_string(count));
     return response;
   }
 };

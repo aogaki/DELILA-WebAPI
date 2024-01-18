@@ -9,12 +9,17 @@
 #include <iostream>
 #include <string>
 
+namespace DELILA
+{
+const std::string Failed = "Failed";
+
 class DELILAController
 {
  public:
   DELILAController(std::string URI, uint32_t port);
   ~DELILAController();
 
+  // To control the DELILA, we need to send commands to DAQ-Middleware
   std::string CheckStatus();
 
   std::string Configure();
@@ -38,7 +43,6 @@ class DELILAController
   std::string RecieveFromSiTCP();
 
   std::string AccessDAQ(std::string command);
-  std::string fFailed = "Failed";
 };
-
+}  // namespace DELILA
 #endif

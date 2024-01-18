@@ -1,41 +1,25 @@
 
 #include "Database.hpp"
 
+#include <bsoncxx/builder/stream/array.hpp>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
+#include <bsoncxx/exception/exception.hpp>
+#include <bsoncxx/json.hpp>
 #include <mongocxx/client.hpp>
 #include <mongocxx/exception/operation_exception.hpp>
 #include <mongocxx/options/insert.hpp>
 
-#include "db/Model.hpp"
 #include "oatpp/core/data/stream/BufferStream.hpp"
+#include "oatpp/parser/json/Utils.hpp"
+#include "oatpp/parser/json/mapping/ObjectMapper.hpp"
 
 namespace db
 {
 
-Database::Database(const mongocxx::uri &uri, const std::string &dbName,
-                   const std::string &collectionName)
-    : m_pool(std::make_shared<mongocxx::pool>(uri)),
-      m_databaseName(dbName),
-      m_collectionName(collectionName)
+Database::Database(const mongocxx::uri &uri, const std::string &dbName)
+    : m_pool(std::make_shared<mongocxx::pool>(uri)), m_databaseName(dbName)
 {
-}
-
-oatpp::Object<User> Database::userFromDto(const oatpp::Object<UserDto> &dto)
-{
-  auto user = User::createShared();
-  user->_id = dto->username;
-  user->username = dto->username;
-  user->active = dto->active;
-  user->role = dto->role;
-  return user;
-}
-
-oatpp::Object<UserDto> Database::dtoFromUser(const oatpp::Object<User> &user)
-{
-  auto dto = UserDto::createShared();
-  dto->username = user->username;
-  dto->active = user->active;
-  dto->role = user->role;
-  return dto;
 }
 
 bsoncxx::document::value Database::createMongoDocument(
@@ -49,88 +33,65 @@ bsoncxx::document::value Database::createMongoDocument(
   return bsoncxx::document::value(view);
 }
 
-oatpp::Object<UserDto> Database::createUser(
-    const oatpp::Object<UserDto> &userDto)
+oatpp::Object<RunLogDto> Database::CreateNewRunRecord(
+    oatpp::Object<RunLogDto> dto)
 {
   auto conn = m_pool->acquire();
-  auto collection = (*conn)[m_databaseName][m_collectionName];
-  collection.insert_one(createMongoDocument(userFromDto(userDto)));
-  return userDto;
+  auto collection = (*conn)[m_dbName][m_collectionName];
+  auto result = collection.insert_one(createMongoDocument(dto));
+
+  return dto;
 }
 
-oatpp::Object<UserDto> Database::updateUser(
-    const oatpp::Object<UserDto> &userDto)
+oatpp::List<oatpp::Object<RunLogDto>> Database::ReadRunList(std::string expName,
+                                                            uint64_t listSize)
 {
   auto conn = m_pool->acquire();
-  auto collection = (*conn)[m_databaseName][m_collectionName];
+  auto collection = (*conn)[m_dbName][m_collectionName];
 
-  collection.update_one(
-      createMongoDocument(  // <-- Filter
-          oatpp::Fields<oatpp::String>({{"_id", userDto->username}})),
-      createMongoDocument(  // <-- Set
-          oatpp::Fields<oatpp::Any>({
-              // map
-              {// pair
-               "$set",
-               oatpp::Fields<oatpp::Any>(
-                   {// you can also define a "strict" DTO for $set operation.
-                    {"active", userDto->active},
-                    {"role", userDto->role}})}  // pair
-          })                                    // map
-          ));
+  auto sortOpt = mongocxx::options::find{};
+  if (listSize > 0) sortOpt.limit(listSize);
+  auto order = bsoncxx::builder::stream::document{}
+               << "start" << -1 << bsoncxx::builder::stream::finalize;
+  sortOpt.sort(order.view());
+  auto key = bsoncxx::builder::stream::document{}
+             << "expName" << expName << bsoncxx::builder::stream::finalize;
+  auto cursor = collection.find({key}, sortOpt);
 
-  return userDto;
-}
-
-oatpp::Object<UserDto> Database::getUser(const oatpp::String &username)
-{
-  auto conn = m_pool->acquire();
-  auto collection = (*conn)[m_databaseName][m_collectionName];
-
-  auto result = collection.find_one(createMongoDocument(  // <-- Filter
-      oatpp::Fields<oatpp::String>({{"_id", username}})));
-
-  if (result) {
-    auto view = result->view();
-    auto bson = oatpp::String((const char *)view.data(), view.length());
-    auto user = m_objectMapper.readFromString<oatpp::Object<User>>(bson);
-    return dtoFromUser(user);
-  }
-
-  return nullptr;
-}
-
-oatpp::List<oatpp::Object<UserDto>> Database::getAllUsers()
-{
-  auto conn = m_pool->acquire();
-  auto collection = (*conn)[m_databaseName][m_collectionName];
-
-  auto cursor =
-      collection.find(createMongoDocument(oatpp::Fields<oatpp::String>({})));
-
-  oatpp::List<oatpp::Object<UserDto>> list({});
-
-  for (auto view : cursor) {
-    auto bson = oatpp::String((const char *)view.data(), view.length());
-    auto user = m_objectMapper.readFromString<oatpp::Object<User>>(bson);
-    list->push_back(dtoFromUser(user));
+  auto list = oatpp::List<oatpp::Object<RunLogDto>>::createShared();
+  for (auto &&doc : cursor) {
+    auto json = bsoncxx::to_json(doc);
+    oatpp::parser::json::mapping::ObjectMapper objMapper;
+    auto dto = objMapper.readFromString<oatpp::Object<RunLogDto>>(json.c_str());
+    list->push_back(dto);
   }
 
   return list;
 }
 
-bool Database::deleteUser(const oatpp::String &username)
+int32_t Database::UpdateRunRecord(oatpp::Object<RunLogDto> dto)
 {
+  // This is used for updating the stop time and comment of a run.
+  // Filter is not id, just use runNumber, start time and experiment name.
+
   auto conn = m_pool->acquire();
-  auto collection = (*conn)[m_databaseName][m_collectionName];
+  auto collection = (*conn)[m_dbName][m_collectionName];
 
-  auto result = collection.delete_one(createMongoDocument(  // <-- Filter
-      oatpp::Fields<oatpp::String>({{"_id", username}})));
+  auto filter = bsoncxx::builder::stream::document{}
+                << "runNumber" << dto->runNumber << "runNumber"
+                << dto->runNumber << "start" << dto->start << "expName"
+                << dto->expName->c_str() << bsoncxx::builder::stream::finalize;
+  auto update = bsoncxx::builder::stream::document{}
+                << "$set" << bsoncxx::builder::stream::open_document
+                << "runNumber" << dto->runNumber << "start" << dto->start
+                << "stop" << dto->stop << "expName" << dto->expName->c_str()
+                << "source" << dto->source->c_str() << "distance"
+                << dto->distance->c_str() << "comment" << dto->comment->c_str()
+                << bsoncxx::builder::stream::close_document
+                << bsoncxx::builder::stream::finalize;
+  auto result = collection.update_one(filter.view(), update.view());
 
-  if (result) {
-    return result->deleted_count() == 1;
-  }
-  return false;
+  return result->modified_count();
 }
 
 }  // namespace db

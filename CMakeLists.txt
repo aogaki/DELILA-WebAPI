@@ -15,8 +15,7 @@ add_library(${project_name}-lib
         src/controller/UserController.hpp
         src/controller/DELILAController.hpp
         src/controller/DELILAController.cpp
-        src/dto/DTOs.hpp
-        src/db/Model.hpp)
+        src/dto/DTOs.hpp)
 
 # ##################################################################
 # Find mongocxx
