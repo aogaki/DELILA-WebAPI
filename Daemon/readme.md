@@ -1,5 +1,7 @@
 # How to setup the daemon
 
+_**Change the path to fit for your system.**_
+
 Copy delila-webapi.service to /etc/systemd/system/
 
 ```
@@ -17,5 +19,3 @@ If possible, enable the daemon
 ```
 sudo systemctl enable delila-webapi.service
 ```
-
-Change the path to fit for your system.

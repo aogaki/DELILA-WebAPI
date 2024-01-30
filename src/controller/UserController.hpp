@@ -37,7 +37,7 @@ class UserController : public oatpp::web::server::api::ApiController
       response->putHeader(Header::CONTENT_TYPE, "text/plain");
     } else {
       response = createResponse(Status::CODE_200, status);
-      response->putHeader(Header::CONTENT_TYPE, "application/xml");
+      response->putHeader(Header::CONTENT_TYPE, "application/json");
     }
 
     return response;

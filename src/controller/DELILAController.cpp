@@ -1,5 +1,7 @@
 #include "controller/DELILAController.hpp"
 
+#include "xml2json/xml2json.hpp"
+
 namespace DELILA
 {
 DELILAController::DELILAController(std::string URI, uint32_t port)
@@ -54,7 +56,9 @@ std::string DELILAController::RecieveFromSiTCP()
   rcv_str.resize(rcv_size);
   recv(fSocketFD, (void *)rcv_str.data(), rcv_size, 0);
 
-  return rcv_str;
+  auto json = xml2json(rcv_str.c_str());
+
+  return json;
 }
 
 std::string DELILAController::AccessDAQ(std::string command)
@@ -158,4 +162,4 @@ std::string DELILAController::StopAndUnconfigure()
 
   return response;
 }
-}
+}  // namespace DELILA
