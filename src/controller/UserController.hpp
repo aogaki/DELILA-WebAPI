@@ -86,8 +86,10 @@ class UserController : public oatpp::web::server::api::ApiController
 
   ENDPOINT_INFO(configure) { info->summary = "Configure DELILA"; }
   ADD_CORS(configure)
-  ENDPOINT("POST", "/DELILA/configure", configure)
+  ENDPOINT("POST", "/DELILA/configure", configure, BODY_STRING(String, body))
   {
+    // This do not use body.  But, if i did not mention, body stucked some where and make trouble.
+    // std::cout << body->c_str() << std::endl;
     auto status = delila.Configure();
     auto response = genResponse(status);
     return response;
@@ -95,7 +97,8 @@ class UserController : public oatpp::web::server::api::ApiController
 
   ENDPOINT_INFO(unconfigure) { info->summary = "Unconfigure DELILA"; }
   ADD_CORS(unconfigure)
-  ENDPOINT("POST", "/DELILA/unconfigure", unconfigure)
+  ENDPOINT("POST", "/DELILA/unconfigure", unconfigure,
+           BODY_STRING(String, body))
   {
     auto status = delila.Unconfigure();
     auto response = genResponse(status);
@@ -109,7 +112,8 @@ class UserController : public oatpp::web::server::api::ApiController
     info->pathParams["runNo"].description = "Run number";
   }
   ADD_CORS(start)
-  ENDPOINT("POST", "/DELILA/start/{runNo}", start, PATH(Int32, runNo))
+  ENDPOINT("POST", "/DELILA/start/{runNo}", start, PATH(Int32, runNo),
+           BODY_STRING(String, body))
   {
     auto status = delila.Start(runNo);
     auto response = genResponse(status);
@@ -118,7 +122,7 @@ class UserController : public oatpp::web::server::api::ApiController
 
   ENDPOINT_INFO(stop) { info->summary = "Stop DELILA"; }
   ADD_CORS(stop)
-  ENDPOINT("POST", "/DELILA/stop", stop)
+  ENDPOINT("POST", "/DELILA/stop", stop, BODY_STRING(String, body))
   {
     auto status = delila.Stop();
     auto response = genResponse(status);
@@ -133,7 +137,7 @@ class UserController : public oatpp::web::server::api::ApiController
   }
   ADD_CORS(configureAndStart)
   ENDPOINT("POST", "/DELILA/configure-and-start/{runNo}", configureAndStart,
-           PATH(Int32, runNo))
+           PATH(Int32, runNo), BODY_STRING(String, body))
   {
     auto status = delila.ConfigureAndStart(runNo);
     auto response = genResponse(status);
@@ -145,7 +149,8 @@ class UserController : public oatpp::web::server::api::ApiController
     info->summary = "Stop and unconfigure DELILA";
   }
   ADD_CORS(stopAndUnconfigure)
-  ENDPOINT("POST", "/DELILA/stop-and-unconfigure", stopAndUnconfigure)
+  ENDPOINT("POST", "/DELILA/stop-and-unconfigure", stopAndUnconfigure,
+           BODY_STRING(String, body))
   {
     auto status = delila.StopAndUnconfigure();
     auto response = genResponse(status);
@@ -157,7 +162,7 @@ class UserController : public oatpp::web::server::api::ApiController
     info->summary = "Dry run DELILA, configure and start without data writing.";
   }
   ADD_CORS(dryRun)
-  ENDPOINT("POST", "/DELILA/dry-run", dryRun)
+  ENDPOINT("POST", "/DELILA/dry-run", dryRun, BODY_STRING(String, body))
   {
     auto status = delila.ConfigureAndStart(-1);
     auto response = genResponse(status);
