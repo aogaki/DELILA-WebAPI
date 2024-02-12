@@ -155,6 +155,7 @@ std::string DELILAController::StopAndUnconfigure()
     std::cerr << "Stop failed" << std::endl;
     return response;
   } else {
+    sleep(1);
     command = "put:ResetParams";
     response = AccessDAQ(command);
     if (response == Failed) std::cerr << "Unconfigure failed" << std::endl;
