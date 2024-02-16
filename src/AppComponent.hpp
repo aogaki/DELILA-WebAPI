@@ -43,8 +43,9 @@ class AppComponent
       std::shared_ptr<oatpp::network::ServerConnectionProvider>,
       serverConnectionProvider)
   ([] {
+    uint16_t port = std::stoi(Parameters::GetInstance()->Get("Server-Port"));
     return oatpp::network::tcp::server::ConnectionProvider::createShared(
-        {"0.0.0.0", 8000, oatpp::network::Address::IP_4});
+        {"0.0.0.0", port, oatpp::network::Address::IP_4});
   }());
 
   /**

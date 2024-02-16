@@ -10,38 +10,40 @@
  *  Swagger ui is served at
  *  http://host:port/swagger/ui
  */
-class SwaggerComponent {
-public:
-  
+class SwaggerComponent
+{
+ public:
   /**
    *  General API docs info
    */
-  OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::swagger::DocumentInfo>, swaggerDocumentInfo)([] {
-    
+  OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::swagger::DocumentInfo>,
+                         swaggerDocumentInfo)
+  ([] {
     oatpp::swagger::DocumentInfo::Builder builder;
-    
-    builder
-    .setTitle("DELILA Web API - Oat++ and MongoDB")
-    .setDescription("Controlling and Save parameters of DELILA")
-    .setVersion("1.0")
-    .setContactName("Soiciro Aogaki")
-    .setContactUrl("https://github.com/aogaki")
-    
-    .addServer("http://172.18.4.56:8000", "Office server");
-    
+
+    auto server = "http://" + Parameters::GetInstance()->Get("Server-IP") +
+                  ":" + Parameters::GetInstance()->Get("Server-Port");
+
+    builder.setTitle("DELILA Web API - Oat++ and MongoDB")
+        .setDescription("Controlling and Save parameters of DELILA")
+        .setVersion("1.0")
+        .setContactName("Soiciro Aogaki")
+        .setContactUrl("https://github.com/aogaki")
+
+        .addServer(server.c_str(), "Office server");
+
     return builder.build();
-    
   }());
-  
-  
+
   /**
    *  Swagger-Ui Resources (<oatpp-examples>/lib/oatpp-swagger/res)
    */
-  OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::swagger::Resources>, swaggerResources)([] {
+  OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::swagger::Resources>,
+                         swaggerResources)
+  ([] {
     // Make sure to specify correct full path to oatpp-swagger/res folder !!!
     return oatpp::swagger::Resources::loadResources(OATPP_SWAGGER_RES_PATH);
   }());
-  
 };
 
 #endif /* example_oatpp_mongo_SwaggerComponent_hpp */
