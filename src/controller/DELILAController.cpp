@@ -135,6 +135,7 @@ std::string DELILAController::ConfigureAndStart(int32_t runNo)
     std::cerr << "Configure failed" << std::endl;
     return response;
   } else {
+    sleep(1);
     std::string part1 =
         "put:Begin:<?xml version='1.0' encoding='UTF-8' ?><request><runNo>";
     auto run = std::to_string(runNo);
